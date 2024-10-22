@@ -84,3 +84,24 @@ def create_model_probability_chart(probabilities):
                       height=400,
                       margin=dict(l=20, r=20, t=50, b=20))
     return fig
+
+
+def plot_percentiles(percentiles):
+    # Create a bar chart using Plotly
+    fig = go.Figure([
+        go.Bar(
+            x=list(percentiles.keys()),  # Metric names on x-axis
+            y=list(percentiles.values()),  # Percentile values on y-axis
+            marker_color='blue'  # Color for bars
+        )
+    ])
+
+    # Add title and labels, and ensure y-axis starts from 0
+    fig.update_layout(
+        title="Customer Metric Percentiles",
+        xaxis_title="Metrics",
+        yaxis_title="Percentile",
+        yaxis=dict(range=[0, 100]),  # Set y-axis range from 0 to 100
+        template='plotly_white')
+
+    return fig

@@ -7,8 +7,34 @@ import utils as ut
 
 from openai import OpenAI
 
+import scipy.stats as stats
+
 client = OpenAI(base_url="https://api.groq.com/openai/v1",
                 api_key=os.environ['GROQ_API_KEY'])
+
+
+def calculate_percentiles(selected_customer, df):
+    # Calculate percentiles for each relevant metric
+    percentiles = {
+        'CreditScore Percentile':
+        stats.percentileofscore(df['CreditScore'],
+                                selected_customer['CreditScore']),
+        'Age Percentile':
+        stats.percentileofscore(df['Age'], selected_customer['Age']),
+        'Tenure Percentile':
+        stats.percentileofscore(df['Tenure'], selected_customer['Tenure']),
+        'Balance Percentile':
+        stats.percentileofscore(df['Balance'], selected_customer['Balance']),
+        'NumOfProducts Percentile':
+        stats.percentileofscore(df['NumOfProducts'],
+                                selected_customer['NumOfProducts']),
+        'EstimatedSalary Percentile':
+        stats.percentileofscore(df['EstimatedSalary'],
+                                selected_customer['EstimatedSalary']),
+    }
+
+    # Return the dictionary of percentiles
+    return percentiles
 
 
 def explain_prediction(probability, input_dict, surname):
@@ -121,7 +147,7 @@ def make_predictions(input_df, input_dict):
 
 
 def generate_email(probability, input_dict, explanation, surname):
-    prompt = f"""You are a manager at Bank of Nova Scotia. You are responsible for ensuring customer stay with the bank and are incentivized with various offers.
+    prompt = f"""You are a manager at National Bank of Europe. You are responsible for ensuring customer stay with the bank and are incentivized with various offers.
     
     You noticed a customer named {surname} has a {round(probability * 100,1)}% probability of churning. 
     
@@ -131,9 +157,9 @@ def generate_email(probability, input_dict, explanation, surname):
     Here is some explanation as to why the customer might be at risk of churning: 
     {explanation}
 
-    Generate an email to the customer based on their information, askingb them to stay if they are at the risk of churning, or offering them incentives so that they beocme more loyal to the bank.
+    Generate an email to the customer based on their information, asking them to stay if they are at the risk of churning, or offering them incentives so that they beocme more loyal to the bank.
 
-    Make sure to list out a set of incentives to stay based on their information, in bullet point format. Don't ever mention the probaility of churining, or the machine learning model to the customer. again format it well with bullets and grammer. start the bullet points on the next line add \n.
+    Make sure to list out a set of incentives to stay based on their information, in bullet point format. Don't ever mention the probaility of churining, or the machine learning model to the customer. again format it well with bullets and grammer. Make sure the email is well formated, like the incentives are on a new bulleted line. add <br> since it will be used in a html doc. the salutation fro the mail is also formal and easy to read. \n.
     
 """
     raw_response = client.chat.completions.create(model="llama-3.2-3b-preview",
@@ -224,3 +250,12 @@ if selected_customer_option:
     st.markdown("---")
     st.subheader("Personalized Email")
     st.markdown(email)
+
+    percentiles = calculate_percentiles(selected_customer, df)
+
+    # Display the percentiles in the Streamlit app
+    st.subheader("Customer Percentiles")
+    # for key, value in percentiles.items():
+    #     st.write(f"{key}: {value:.2f}th percentile")
+    per_chart = ut.plot_percentiles(percentiles)
+    st.plotly_chart(per_chart, use_container_width=True)
