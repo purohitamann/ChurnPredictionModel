@@ -13,6 +13,27 @@ client = OpenAI(base_url="https://api.groq.com/openai/v1",
                 api_key=os.environ['GROQ_API_KEY'])
 
 
+def prepare_input_opt(input_df):
+    # Add derived features if they are not already present
+    input_df['CLV'] = input_df['Balance'] * input_df['EstimatedSalary'] / 100000
+    input_df['TenureAgeRatio'] = input_df['Tenure'] / input_df['Age']
+
+    # Create age group features
+    input_df['AgeGroup_MiddleAge'] = np.where((input_df['Age'] >= 40) & (input_df['Age'] < 60), 1, 0)
+    input_df['AgeGroup_Senior'] = np.where((input_df['Age'] >= 60), 1, 0)
+    input_df['AgeGroup_Elderly'] = np.where((input_df['Age'] >= 75), 1, 0)
+
+    # Define the correct order of the features
+    expected_columns = ['CreditScore', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 
+                        'IsActiveMember', 'EstimatedSalary', 'Geography_France', 
+                        'Geography_Germany', 'Geography_Spain', 'Gender_Female', 
+                        'Gender_Male', 'CLV', 'TenureAgeRatio', 'AgeGroup_MiddleAge', 
+                        'AgeGroup_Senior', 'AgeGroup_Elderly']
+
+    # Ensure the input_df has all expected columns, and reorder them accordingly
+    input_df = input_df.reindex(columns=expected_columns, fill_value=0)
+
+    return input_df
 def calculate_percentiles(selected_customer, df):
     # Calculate percentiles for each relevant metric
     percentiles = {
@@ -147,7 +168,9 @@ def generate_email(probability, input_dict, explanation, surname):
 
     Generate an email to the customer based on their information, asking them to stay if they are at the risk of churning, or offering them incentives so that they beocme more loyal to the bank.
 
-    Make sure to list out a set of incentives to stay based on their information, in bullet point format. Don't ever mention the probaility of churining, or the machine learning model to the customer. again format it well with bullets and grammer. Make sure the email is well formated, like the incentives are on a new bulleted line. add <br> since it will be used in a html doc. the salutation fro the mail is also formal and easy to read. \n.
+    Make sure to list out a set of incentives to stay based on their information, in bullet point format. Don't ever mention the probaility of churining, or the machine learning model to the customer. again format it well with bullets and grammer.
+    Make sure the email is well formated, like the incentives are on a new bulleted line.
+    the salutation fro the mail is also formal and easy to read. make it easier for the customer to understand and easy for manger to just copy the email  \n.
     
 """
     raw_response = client.chat.completions.create(model="llama-3.2-3b-preview",
@@ -240,6 +263,31 @@ if selected_customer_option:
     explanation = explain_prediction(avg_probaility, input_dict,
                                      selected_customer['Surname'])
 
+    percentiles = calculate_percentiles(selected_customer, df)
+
+    # Display the percentiles in the Streamlit app
+    st.subheader("Customer Percentiles")
+    # for key, value in percentiles.items():
+    #     st.write(f"{key}: {value:.2f}th percentile")
+    per_chart = ut.plot_percentiles(percentiles)
+    st.plotly_chart(per_chart, use_container_width=True)
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Prediction Results for Optimized Grid Search Model")
+        gridSearch_Eval = load_model('gridSearch-eval.pkl')
+        proba_grid = gridSearch_Eval.predict_proba(prepare_input_opt(input_df))
+        fig = ut.create_gauge_chart(proba_grid[0][1])
+        st.plotly_chart(fig, use_container_width=True)
+        st.write(f"The customer has a {proba_grid[0][1]:.2%} probability of churning.")
+
+    with col2:
+        hyperameter_tuning_model = load_model('xgb_Hyper-eval.pkl')
+        st.subheader("Prediction Results for Optimized Random Search Model")
+        random = hyperameter_tuning_model.predict_proba(prepare_input_opt(input_df))
+        fig = ut.create_gauge_chart(random[0][1])
+        st.plotly_chart(fig, use_container_width=True)
+        st.write(f"The customer has a {random[0][1]:.2%} probability of churning.")
     st.markdown("---")
     st.subheader("Explanation of Prediction")
     st.markdown(explanation)
@@ -250,11 +298,4 @@ if selected_customer_option:
     st.subheader("Personalized Email")
     st.markdown(email)
 
-    percentiles = calculate_percentiles(selected_customer, df)
-
-    # Display the percentiles in the Streamlit app
-    st.subheader("Customer Percentiles")
-    # for key, value in percentiles.items():
-    #     st.write(f"{key}: {value:.2f}th percentile")
-    per_chart = ut.plot_percentiles(percentiles)
-    st.plotly_chart(per_chart, use_container_width=True)
+    

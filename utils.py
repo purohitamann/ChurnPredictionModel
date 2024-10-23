@@ -105,3 +105,36 @@ def plot_percentiles(percentiles):
         template='plotly_white')
 
     return fig
+
+# Plot results using Plotly
+def plot_results(results):
+    # Sort by rank (best models first)
+    sorted_results = results.sort_values(by='rank_test_score')
+
+    # Create a bar plot
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=sorted_results['param_xgboost__n_estimators'],
+        y=sorted_results['mean_test_score'],
+        name='XGBoost n_estimators',
+        marker_color='blue'
+    ))
+
+    fig.add_trace(go.Bar(
+        x=sorted_results['param_random_forest__n_estimators'],
+        y=sorted_results['mean_test_score'],
+        name='Random Forest n_estimators',
+        marker_color='orange'
+    ))
+
+    fig.update_layout(
+        title='Hyperparameter Tuning Results',
+        xaxis_title='Hyperparameter Values',
+        yaxis_title='Mean Test Score (Cross-Validation)',
+        barmode='group'
+    )
+    
+    return fig
+
+
