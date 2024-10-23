@@ -169,7 +169,7 @@ def generate_email(probability, input_dict, explanation, surname):
     Generate an email to the customer based on their information, asking them to stay if they are at the risk of churning, or offering them incentives so that they beocme more loyal to the bank.
 
     Make sure to list out a set of incentives to stay based on their information, in bullet point format. Don't ever mention the probaility of churining, or the machine learning model to the customer. again format it well with bullets and grammer.
-    Make sure the email is well formated, like the incentives are on a new bulleted line.
+    Make sure the email is well formated, like the incentives are on a new bulleted line. format the mail such that the layour looks perfect on the web
     the salutation fro the mail is also formal and easy to read. make it easier for the customer to understand and easy for manger to just copy the email  \n.
     
 """
@@ -183,6 +183,7 @@ def generate_email(probability, input_dict, explanation, surname):
 
 
 xgboost_model = load_model('xgb_model.pkl')
+
 naive_bayes_model = load_model('nb_model.pkl')
 random_forest_model = load_model('rf_model.pkl')
 decision_tree_model = load_model('dt_model.pkl')
