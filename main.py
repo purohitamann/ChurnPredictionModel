@@ -12,6 +12,34 @@ import scipy.stats as stats
 client = OpenAI(base_url="https://api.groq.com/openai/v1",
                 api_key=os.environ['GROQ_API_KEY'])
 
+import streamlit as st
+import requests
+
+st.title("Customer Churn Prediction")
+
+# Collect customer data
+# Collect customer data
+customer_data = {
+    "CreditScore": st.number_input("Credit Score", min_value=300, max_value=850, value=600),
+    "Geography": st.selectbox("Geography", ["France", "Germany", "Spain"]),
+    "Gender": st.radio("Gender", ["Male", "Female"]),
+    "Age": st.number_input("Age", min_value=18, max_value=100, value=40),
+    "Tenure": st.number_input("Tenure", min_value=0, max_value=10, value=3),
+    "Balance": st.number_input("Balance", min_value=0.0, value=60000.0),
+    "NumOfProducts": st.number_input("Number of Products", min_value=1, max_value=4, value=2),
+    "HasCrCard": st.checkbox("Has Credit Card", value=True, key="has_credit_card"),  # Added unique key
+    "IsActiveMember": st.checkbox("Is Active Member", value=True, key="is_active_member"),  # Added unique key
+    "EstimatedSalary": st.number_input("Estimated Salary", min_value=0.0, value=50000.0)
+}
+
+
+# Send request to FastAPI server
+if st.button("Predict Churn"):
+    response = requests.post("https://churnpredictionmodel.onrender.com/predict", json=customer_data)
+    if response.status_code == 200:
+        st.write("Churn Prediction:", response.json())
+    else:
+        st.write("Error:", response.status_code, response.text)
 
 def prepare_input_opt(input_df):
     # Add derived features if they are not already present
