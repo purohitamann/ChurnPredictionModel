@@ -35,7 +35,9 @@ def load_model(filename):
 
 # Load your models
 xgboost_model = load_model('xgb_model.pkl')
-
+@app.get("/")
+async def root():
+    return {"message": "Hello, this is your churn prediction FastAPI app"}
 @app.post("/predict")
 async def predict(customer: CustomerInput):
     input_dict = customer.model_dump()
