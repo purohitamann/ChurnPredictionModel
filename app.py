@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 from pydantic import BaseModel
 from main import prepare_input_opt
+
 app = FastAPI()
 
 class CustomerInput(BaseModel):
@@ -26,19 +27,27 @@ def load_model(filename):
 xgboost_model = load_model('xgb_model.pkl')
 
 @app.post("/predict")
-def predict(customer: CustomerInput):
-    input_dict = customer.dict()
+async def predict(customer: CustomerInput):
+    input_dict = customer.model_dump()
     
     input_df = pd.DataFrame([input_dict])
     
     # Prepare input based on your previous function
     input_df = prepare_input_opt(input_df)
     
-    # Make predictions
-    probabilities = {
-        'XGBoost': xgboost_model.predict_proba(input_df)[0][1],
-    }
+    # Define the columns that were used during model training
+    expected_columns = ['CreditScore', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 
+                    'HasCrCard', 'IsActiveMember', 'EstimatedSalary', 
+                    'Geography_France', 'Geography_Germany', 'Geography_Spain', 
+                    'Gender_Female', 'Gender_Male']
+
+    # Ensure input_df has only the expected columns
+    input_df = input_df[expected_columns]
     
-    avg_probability = np.mean(list(probabilities.values()))
+    # Make predictions using XGBoost
+    probabilities = xgboost_model.predict_proba(input_df)[:, 1]  # Get probability of churn
     
-    return {"Churn_Probability": avg_probability}
+    # Convert numpy array to Python list for JSON serialization
+    churn_probabilities = probabilities.tolist()
+    
+    return {"Churn_Probability": churn_probabilities[0]}  # Assuming you're predicting for a single customer
